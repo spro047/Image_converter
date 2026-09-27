@@ -2,4 +2,7 @@ __pycache__/
 *.pyc
 .codegraph/
 .omo/
+.playwright-mcp/
 server.pid
+urls.db
+page-before.png

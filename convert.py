@@ -159,6 +159,20 @@ def convert_image_file(src: Path, fmt: str) -> io.BytesIO:
     return buf
 
 
+def pdf_to_images(src: Path, dpi: int = 150) -> list[bytes]:
+    """Render every page of a PDF to PNG bytes (150 dpi default)."""
+    import pymupdf
+
+    zoom = dpi / 72
+    mat = pymupdf.Matrix(zoom, zoom)
+    pages: list[bytes] = []
+    with pymupdf.open(src) as doc:
+        for page in doc:
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            pages.append(pix.tobytes("png"))
+    return pages
+
+
 _rembg_session = None
 
 
