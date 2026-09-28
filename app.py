@@ -29,8 +29,27 @@ app.config["MAX_CONTENT_LENGTH"] = 256 * 1024 * 1024  # 256 MB upload limit
 
 PORT = int(os.environ.get("PORT", 3000))
 
-DB_PATH = Path(__file__).resolve().with_name("urls.db")
 _CODE_ALPHABET = string.ascii_letters + string.digits
+
+
+def _db_path() -> Path:
+    """Pick a writable location for the SQLite DB.
+
+    Locally this is urls.db next to app.py; on read-only serverless
+    filesystems (Vercel) it falls back to the temp dir so the app can
+    still start and serve.
+    """
+    local = Path(__file__).resolve().with_name("urls.db")
+    try:
+        conn = sqlite3.connect(local)
+        conn.execute("SELECT 1")
+        conn.close()
+        return local
+    except sqlite3.OperationalError:
+        return Path(tempfile.gettempdir()) / "urls.db"
+
+
+DB_PATH = _db_path()
 
 
 def _get_lan_ip() -> str:
@@ -104,7 +123,10 @@ def _lookup_url(code: str) -> str | None:
     return row[0] if row else None
 
 
-_db().close()  # initialize the database file on startup
+try:
+    _db().close()  # initialize the database file on startup
+except sqlite3.OperationalError:
+    pass  # read-only filesystem (serverless): DB will be created lazily in /tmp
 
 INDEX_HTML = """<!doctype html>
 <html lang="en">
